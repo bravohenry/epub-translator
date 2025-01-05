@@ -1,203 +1,188 @@
-import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from './ui/dialog';
+import React, { useState, useEffect } from 'react';
+import { Dialog } from './ui/dialog';
 import { Button } from './ui/button';
-import { Settings } from 'lucide-react';
 
-const apiOptions = [
-  { 
-    id: 'deepseek', 
-    name: 'DeepSeek API', 
-    description: 'Professional AI translation engine',
-    keyPlaceholder: 'Enter DeepSeek API key',
-    keyHelp: 'Get your API key from DeepSeek website'
-  },
-  { 
-    id: 'openai', 
-    name: 'OpenAI API', 
-    description: 'GPT-powered translation',
-    keyPlaceholder: 'Enter OpenAI API key',
-    keyHelp: 'Get your API key from OpenAI website'
-  },
-  { 
-    id: 'google', 
-    name: 'Google Translate', 
-    description: 'Google translation service',
-    keyPlaceholder: 'Enter Google Cloud API key',
-    keyHelp: 'Get your API key from Google Cloud Console'
-  },
+const API_OPTIONS = [
+  { value: 'deepseek', label: 'DeepSeek' },
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'gemini', label: 'Google Gemini' },
 ];
 
-const translationStyles = [
-  { id: 'literal', name: 'Literal', description: 'Faithful to the original text, suitable for technical documents' },
-  { id: 'free', name: 'Free', description: 'Elegant and fluent, suitable for literature' },
-  { id: 'balanced', name: 'Balanced', description: 'Balance between accuracy and fluency' },
+const STYLE_OPTIONS = [
+  { value: 'balanced', label: '平衡' },
+  { value: 'literal', label: '直译' },
+  { value: 'free', label: '意译' },
 ];
 
-const domains = [
-  { id: 'general', name: 'General', description: 'Suitable for most content' },
-  { id: 'technical', name: 'Technical', description: 'Technical documents and manuals' },
-  { id: 'literary', name: 'Literary', description: 'Novels and literature' },
-  { id: 'business', name: 'Business', description: 'Business documents' },
-  { id: 'academic', name: 'Academic', description: 'Academic papers and research' },
+const DOMAIN_OPTIONS = [
+  { value: 'general', label: '通用' },
+  { value: 'academic', label: '学术' },
+  { value: 'literature', label: '文学' },
 ];
 
-export function SettingsDialog({ settings, onSettingsChange }) {
-  const [localSettings, setLocalSettings] = React.useState({
-    ...settings,
-    apiKeys: settings.apiKeys || {}
-  });
-  const [showApiKey, setShowApiKey] = React.useState(false);
+const TARGET_LANGUAGE_OPTIONS = [
+  { value: 'zh', label: '中文' },
+  { value: 'en', label: '英文' },
+  { value: 'ja', label: '日文' },
+  { value: 'ko', label: '韩文' },
+  { value: 'fr', label: '法文' },
+  { value: 'de', label: '德文' },
+];
 
-  const handleChange = (key, value) => {
-    setLocalSettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  };
+const defaultSettings = {
+  api: 'deepseek',
+  style: 'balanced',
+  domain: 'general',
+  targetLanguage: 'zh',
+  keepOriginal: true,
+  apiKeys: {},
+};
 
-  const handleApiKeyChange = (apiId, value) => {
-    setLocalSettings(prev => ({
-      ...prev,
-      apiKeys: {
-        ...prev.apiKeys,
-        [apiId]: value
-      }
-    }));
-  };
+export const SettingsDialog = ({ settings: initialSettings, onSettingsChange }) => {
+  const [settings, setSettings] = useState(initialSettings || defaultSettings);
 
   const handleSave = () => {
-    const savedSettings = {
-      ...localSettings,
-      apiKeys: localSettings.apiKeys
-    };
-    localStorage.setItem('translationSettings', JSON.stringify(savedSettings));
-    onSettingsChange(savedSettings);
+    try {
+      console.log('保存设置:', {
+        api: settings.api,
+        hasApiKey: !!settings.apiKeys[settings.api],
+        apiKeyLength: settings.apiKeys[settings.api] ? settings.apiKeys[settings.api].length : 0
+      });
+      onSettingsChange(settings);
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    }
   };
 
+  const handleChange = (key, value) => {
+    console.log('设置改变:', { key, value });
+    if (key === 'apiKeys') {
+      console.log('API Key 更新:', {
+        api: settings.api,
+        hasNewKey: !!value[settings.api],
+        newKeyLength: value[settings.api] ? value[settings.api].length : 0
+      });
+    }
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  // 当初始设置改变时更新本地状态
+  useEffect(() => {
+    setSettings(initialSettings || defaultSettings);
+  }, [initialSettings]);
+
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="button-linear">
-          <Settings className="w-4 h-4" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-background border-border">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">Translation Settings</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-6 py-4">
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-muted-foreground">Translation API</h4>
-            <div className="space-y-2">
-              {apiOptions.map((api) => (
-                <div key={api.id} className="space-y-2">
-                  <div
-                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                      localSettings.api === api.id 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                    onClick={() => handleChange('api', api.id)}
-                  >
-                    <div>
-                      <div className="font-medium">{api.name}</div>
-                      <div className="text-sm text-muted-foreground">{api.description}</div>
-                    </div>
-                  </div>
-                  {localSettings.api === api.id && (
-                    <div className="px-3">
-                      <div className="relative">
-                        <input
-                          type={showApiKey ? "text" : "password"}
-                          className="input-linear w-full"
-                          placeholder={api.keyPlaceholder}
-                          value={localSettings.apiKeys[api.id] || ''}
-                          onChange={(e) => handleApiKeyChange(api.id, e.target.value)}
-                        />
-                        <button
-                          type="button"
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground hover:text-foreground"
-                          onClick={() => setShowApiKey(!showApiKey)}
-                        >
-                          {showApiKey ? 'Hide' : 'Show'}
-                        </button>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{api.keyHelp}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+    <Dialog.Content className="w-[90vw] max-w-lg">
+      <Dialog.Header>
+        <Dialog.Title>翻译设置</Dialog.Title>
+        <Dialog.Description>
+          配置翻译API和翻译风格
+        </Dialog.Description>
+      </Dialog.Header>
 
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-muted-foreground">Translation Style</h4>
-            <div className="space-y-2">
-              {translationStyles.map((style) => (
-                <div
-                  key={style.id}
-                  className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                    localSettings.style === style.id 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                  onClick={() => handleChange('style', style.id)}
-                >
-                  <div>
-                    <div className="font-medium">{style.name}</div>
-                    <div className="text-sm text-muted-foreground">{style.description}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-muted-foreground">Domain</h4>
-            <div className="grid grid-cols-2 gap-2">
-              {domains.map((domain) => (
-                <div
-                  key={domain.id}
-                  className={`flex flex-col p-3 rounded-lg border cursor-pointer transition-colors ${
-                    localSettings.domain === domain.id 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                  onClick={() => handleChange('domain', domain.id)}
-                >
-                  <div className="font-medium">{domain.name}</div>
-                  <div className="text-xs text-muted-foreground">{domain.description}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="keepOriginal"
-              className="rounded border-border focus:ring-primary"
-              checked={localSettings.keepOriginal}
-              onChange={(e) => handleChange('keepOriginal', e.target.checked)}
-            />
-            <label htmlFor="keepOriginal" className="text-sm font-medium">
-              Keep original text
-            </label>
-          </div>
+      <div className="space-y-4">
+        {/* API 选择 */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">翻译 API</label>
+          <select
+            value={settings.api}
+            onChange={(e) => handleChange('api', e.target.value)}
+            className="w-full px-3 py-2 bg-background border rounded-md"
+          >
+            {API_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
-        <DialogFooter>
-          <Button onClick={handleSave} className="button-linear button-primary">
-            Save Settings
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+        {/* API Key 输入 */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">API Key</label>
+          <input
+            type="password"
+            value={settings.apiKeys[settings.api] || ''}
+            onChange={(e) => handleChange('apiKeys', {
+              ...settings.apiKeys,
+              [settings.api]: e.target.value
+            })}
+            className="w-full px-3 py-2 bg-background border rounded-md"
+            placeholder="输入 API Key"
+          />
+        </div>
+
+        {/* 目标语言选择 */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">目标语言</label>
+          <select
+            value={settings.targetLanguage}
+            onChange={(e) => handleChange('targetLanguage', e.target.value)}
+            className="w-full px-3 py-2 bg-background border rounded-md"
+          >
+            {TARGET_LANGUAGE_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* 翻译风格选择 */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">翻译风格</label>
+          <select
+            value={settings.style}
+            onChange={(e) => handleChange('style', e.target.value)}
+            className="w-full px-3 py-2 bg-background border rounded-md"
+          >
+            {STYLE_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* 领域选择 */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">专业领域</label>
+          <select
+            value={settings.domain}
+            onChange={(e) => handleChange('domain', e.target.value)}
+            className="w-full px-3 py-2 bg-background border rounded-md"
+          >
+            {DOMAIN_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* 保留原文选项 */}
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="keepOriginal"
+            checked={settings.keepOriginal}
+            onChange={(e) => handleChange('keepOriginal', e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          <label htmlFor="keepOriginal" className="text-sm font-medium">
+            保留原文
+          </label>
+        </div>
+      </div>
+
+      <Dialog.Footer>
+        <Dialog.Close asChild>
+          <Button variant="secondary">取消</Button>
+        </Dialog.Close>
+        <Dialog.Close asChild>
+          <Button onClick={handleSave}>保存</Button>
+        </Dialog.Close>
+      </Dialog.Footer>
+    </Dialog.Content>
   );
-} 
+}; 

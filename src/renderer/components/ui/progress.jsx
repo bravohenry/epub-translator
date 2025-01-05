@@ -1,22 +1,15 @@
-import * as React from "react"
-import * as ProgressPrimitive from "@radix-ui/react-progress"
-import { cn } from "../../lib/utils"
+import React from 'react';
 
-const Progress = React.forwardRef(({ className, value, ...props }, ref) => (
-  <ProgressPrimitive.Root
-    ref={ref}
-    className={cn(
-      "relative h-2 w-full overflow-hidden rounded-full bg-primary/20",
-      className
-    )}
-    {...props}
-  >
-    <ProgressPrimitive.Indicator
-      className="h-full w-full flex-1 bg-primary transition-all"
-      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
-    />
-  </ProgressPrimitive.Root>
-))
-Progress.displayName = ProgressPrimitive.Root.displayName
-
-export { Progress } 
+// 进度条组件
+export const Progress = ({ value = 0, max = 100, className = '' }) => {
+  const percentage = Math.min(100, Math.max(0, (value / max) * 100));
+  
+  return (
+    <div className="progress-bar">
+      <div 
+        className="progress-bar-value"
+        style={{ width: `${percentage}%` }}
+      />
+    </div>
+  );
+}; 

@@ -2,43 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: 0 0% 4%;
-  --foreground: 0 0% 98%;
-  
-  --card: 0 0% 6%;
-  --card-foreground: 0 0% 98%;
-  
-  --popover: 0 0% 9%;
-  --popover-foreground: 0 0% 98%;
-  
-  --primary: 252 59% 48%;
-  --primary-foreground: 0 0% 98%;
-  
-  --secondary: 0 0% 9%;
-  --secondary-foreground: 0 0% 98%;
-  
-  --muted: 0 0% 9%;
-  --muted-foreground: 0 0% 45%;
-  
-  --accent: 0 0% 9%;
-  --accent-foreground: 0 0% 98%;
-  
-  --destructive: 0 62% 35%;
-  --destructive-foreground: 0 0% 98%;
-
-  --success: 142 72% 29%;
-  --success-foreground: 0 0% 98%;
-  
-  --border: 0 0% 12%;
-  --input: 0 0% 12%;
-  --ring: 252 59% 48%;
-  
-  --radius: 0.75rem;
+@layer base {
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 252 59% 48%;
+    --primary-foreground: 0 0% 98%;
+    
+    --secondary: 240 5.9% 10%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 240 5.9% 10%;
+    --muted-foreground: 240 5% 64.9%;
+    
+    --accent: 240 5.9% 10%;
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 252 59% 48%;
+    
+    --radius: 0.75rem;
+  }
 }
 
-body {
-  @apply bg-background text-foreground antialiased;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
 }
 
 /* Linear 风格的进度条 */
@@ -88,7 +92,7 @@ body {
 }
 
 .status-dot-success {
-  @apply bg-success;
+  @apply bg-emerald-500;
 }
 
 .status-dot-error {
@@ -120,4 +124,54 @@ body {
 
 ::-webkit-scrollbar-thumb {
   @apply bg-muted rounded-full hover:bg-muted-foreground/50;
+}
+
+/* 对话框样式 */
+.dialog-content {
+  @apply bg-card border border-border shadow-lg rounded-lg;
+}
+
+/* 表单控件样式 */
+select, input[type="text"], input[type="password"] {
+  @apply bg-secondary border-border text-foreground rounded-lg px-4 py-2
+         focus:outline-none focus:ring-1 focus:ring-primary/50;
+}
+
+/* 标签样式 */
+label {
+  @apply text-foreground font-medium;
+}
+
+/* 选项样式 */
+option {
+  @apply bg-background text-foreground;
+}
+
+/* 动画类 */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 } 

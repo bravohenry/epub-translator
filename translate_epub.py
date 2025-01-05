@@ -1,19 +1,26 @@
+import os
+import argparse
+from pathlib import Path
 from ebooklib import epub
 from bs4 import BeautifulSoup
 import html
-import os
 import requests
 import json
 import time
 from tqdm import tqdm
 import sys
-import argparse
-from pathlib import Path
+
+def debug_log(message, data=None):
+    log_data = {
+        'status': 'debug',
+        'message': message,
+        'data': data
+    }
+    print(json.dumps(log_data))
+    sys.stdout.flush()  # 确保立即输出
 
 def deepseek_translate(text, style='balanced', domain='general', api_key=None, pbar=None):
-    """
-    使用Deepseek API进行翻译
-    """
+    """使用Deepseek API进行翻译"""
     if not api_key:
         raise ValueError("未配置API密钥，请在设置中配置API密钥")
         
@@ -72,9 +79,7 @@ def deepseek_translate(text, style='balanced', domain='general', api_key=None, p
         return text
 
 def openai_translate(text, style='balanced', domain='general', api_key=None, pbar=None):
-    """
-    使用OpenAI API进行翻译
-    """
+    """使用OpenAI API进行翻译"""
     if not api_key:
         raise ValueError("未配置API密钥，请在设置中配置API密钥")
         
@@ -133,9 +138,7 @@ def openai_translate(text, style='balanced', domain='general', api_key=None, pba
         return text
 
 def google_translate(text, api_key=None, pbar=None):
-    """
-    使用Google Translate API进行翻译
-    """
+    """使用Google Translate API进行翻译"""
     if not api_key:
         raise ValueError("未配置API密钥，请在设置中配置API密钥")
         
@@ -161,11 +164,12 @@ def google_translate(text, api_key=None, pbar=None):
         return text
 
 def translate_text(text, settings, pbar=None):
-    """
-    根据设置选择翻译API
-    """
+    """根据设置选择翻译API"""
     api = settings.get('api', 'deepseek')
-    api_key = settings.get('apiKeys', {}).get(api)
+    api_key = os.environ.get('TRANSLATOR_API_KEY')
+    if not api_key:
+        raise ValueError("未设置TRANSLATOR_API_KEY环境变量")
+    
     style = settings.get('style', 'balanced')
     domain = settings.get('domain', 'general')
     
@@ -178,34 +182,10 @@ def translate_text(text, settings, pbar=None):
     else:
         raise ValueError(f"不支持的翻译API: {api}")
 
-def load_translation_progress(book_name):
-    """
-    加载翻译进度
-    """
-    progress_file = f"translation_progress_{book_name}.json"
-    if os.path.exists(progress_file):
-        with open(progress_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {'chapters': {}, 'last_chapter': '', 'completed': False}
-
-def save_translation_progress(progress, book_name):
-    """
-    保存翻译进度
-    """
-    progress_file = f"translation_progress_{book_name}.json"
-    with open(progress_file, 'w', encoding='utf-8') as f:
-        json.dump(progress, f, ensure_ascii=False, indent=2)
-
-def translate_content(content, chapter_name="", progress=None, book_name="", settings=None):
-    """
-    翻译HTML内容并保持原格式，支持断点续翻
-    """
+def translate_content(content, chapter_name="", settings=None, pbar=None):
+    """翻译HTML内容并保持原格式"""
     soup = BeautifulSoup(content, 'html.parser')
-    text_nodes = soup.find_all(text=True)
-    
-    # 获取该章节的翻译进度
-    chapter_progress = progress['chapters'].get(chapter_name, {})
-    translated_nodes = chapter_progress.get('translated_nodes', {})
+    text_nodes = soup.find_all(string=True)
     
     # 过滤出需要翻译的节点
     nodes_to_translate = [
@@ -213,144 +193,170 @@ def translate_content(content, chapter_name="", progress=None, book_name="", set
         if node.strip() and node.parent.name not in ['script', 'style']
     ]
     
-    print(f"\n开始翻译章节: {chapter_name}")
-    with tqdm(total=len(nodes_to_translate), 
-             desc="翻译进度",
-             initial=len(translated_nodes),
-             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]') as pbar:
-        
-        for i, node in enumerate(nodes_to_translate):
-            node_key = str(i)
-            if node_key in translated_nodes:
-                # 如果该节点已翻译，直接使用缓存的翻译结果
-                node.replace_with(translated_nodes[node_key])
-                continue
+    total_nodes = len(nodes_to_translate)
+    for i, node in enumerate(nodes_to_translate):
+        if node.strip():
+            original_text = node.strip()
+            try:
+                translated_text = translate_text(original_text, settings, pbar)
+                new_text = (f"{original_text}\n{translated_text}" 
+                          if settings.get('keepOriginal', True) 
+                          else translated_text)
+                node.replace_with(new_text)
                 
-            if node.strip():
-                original_text = node.strip()
-                try:
-                    translated_text = translate_text(original_text, settings, pbar)
-                    new_text = (f"{original_text}\n{translated_text}" 
-                              if settings.get('keepOriginal', True) 
-                              else translated_text)
-                    node.replace_with(new_text)
-                    
-                    # 保存翻译结果
-                    translated_nodes[node_key] = new_text
-                    progress['chapters'][chapter_name] = {
-                        'translated_nodes': translated_nodes,
-                        'completed': False
-                    }
-                    save_translation_progress(progress, book_name)
-                    
-                    pbar.update(1)
-                except Exception as e:
-                    pbar.set_description(f"翻译出错: {str(e)[:50]}")
-                    continue
-    
-    # 标记本章节翻译完成
-    progress['chapters'][chapter_name]['completed'] = True
-    save_translation_progress(progress, book_name)
+                # 更新进度
+                progress = {
+                    'status': 'translating',
+                    'current_chapter': chapter_name,
+                    'chapter_progress': (i + 1) / total_nodes * 100
+                }
+                print(json.dumps(progress))
+                
+            except Exception as e:
+                print(json.dumps({
+                    'status': 'error',
+                    'message': str(e)
+                }), file=sys.stderr)
+                continue
     
     return str(soup)
 
 def translate_epub(input_path, output_path, settings=None):
-    """
-    翻译整本epub并生成新文件，支持断点续翻
-    """
-    book_name = Path(input_path).stem
-    progress = load_translation_progress(book_name)
-    
-    if progress.get('completed'):
-        print(f"该书籍已完成翻译，直接使用缓存结果")
-        return
-    
-    print(f"开始处理电子书: {os.path.basename(input_path)}")
-    book = epub.read_epub(input_path)
-    new_book = epub.EpubBook()
+    """翻译整本epub并生成新文件"""
+    debug_log(f"开始处理电子书: {os.path.basename(input_path)}")
+    debug_log("当前设置:", settings)
     
     try:
-        identifiers = book.get_metadata('DC', 'identifier')
-        if identifiers:
-            new_book.set_identifier(identifiers[0][0])
-        else:
+        debug_log("正在读取epub文件...")
+        book = epub.read_epub(input_path)
+        new_book = epub.EpubBook()
+        
+        debug_log("正在设置基本信息...")
+        try:
+            # 设置基本信息
+            identifiers = book.get_metadata('DC', 'identifier')
+            if identifiers:
+                new_book.set_identifier(identifiers[0][0])
+            else:
+                new_book.set_identifier('id123456')
+                
+            titles = book.get_metadata('DC', 'title')
+            if titles:
+                new_book.set_title(f"{titles[0][0]} (双语版)")
+            else:
+                new_book.set_title("Bilingual Book")
+                
+        except Exception as e:
+            debug_log(f"设置元数据时出错: {str(e)}")
             new_book.set_identifier('id123456')
-            
-        titles = book.get_metadata('DC', 'title')
-        if titles:
-            new_book.set_title(f"{titles[0][0]} (双语版)")
-        else:
             new_book.set_title("Bilingual Book")
+        
+        new_book.set_language('zh-CN')
+        
+        # 获取总章节数
+        debug_log("正在统计章节...")
+        html_items = [item for item in book.get_items() if isinstance(item, epub.EpubHtml)]
+        total_chapters = len(html_items)
+        
+        debug_log(f"总章节数: {total_chapters}")
+        
+        print(json.dumps({
+            'status': 'info',
+            'message': f"总章节数: {total_chapters}"
+        }))
+        sys.stdout.flush()
+        
+        new_chapters = []
+        for i, item in enumerate(html_items, 1):
+            chapter_name = item.get_name()
+            debug_log(f"开始处理章节 {i}/{total_chapters}: {chapter_name}")
             
-    except Exception as e:
-        print(f"设置元数据时出错: {str(e)}")
-        new_book.set_identifier('id123456')
-        new_book.set_title("Bilingual Book")
-    
-    new_book.set_language('zh-CN')
-    
-    # 获取总章节数
-    html_items = [item for item in book.get_items() if isinstance(item, epub.EpubHtml)]
-    print(f"\n总章节数: {len(html_items)}")
-    
-    new_chapters = []
-    for i, item in enumerate(html_items, 1):
-        chapter_name = item.get_name()
+            print(json.dumps({
+                'status': 'translating',
+                'current_chapter': i,
+                'total_chapters': total_chapters,
+                'chapter_progress': 0
+            }))
+            sys.stdout.flush()
+            
+            try:
+                content = item.get_content().decode('utf-8')
+                debug_log(f"章节 {i} 内容长度: {len(content)}")
+                
+                new_content = translate_content(
+                    content,
+                    chapter_name,
+                    settings
+                )
+                
+                new_chapter = epub.EpubHtml(
+                    title=item.get_name(),
+                    file_name=item.get_name(),
+                    content=new_content.encode('utf-8')
+                )
+                new_chapters.append(new_chapter)
+                new_book.add_item(new_chapter)
+                
+                debug_log(f"章节 {i} 处理完成")
+            except Exception as e:
+                debug_log(f"处理章节 {i} 时出错: {str(e)}")
+                raise
         
-        # 检查章节是否已完成翻译
-        if chapter_name in progress['chapters'] and progress['chapters'][chapter_name].get('completed'):
-            print(f"\n章节 {i}/{len(html_items)} ({chapter_name}) 已完成翻译，跳过")
-            new_content = translate_content(
-                item.get_content().decode('utf-8'),
-                chapter_name,
-                progress,
-                book_name,
-                settings
-            )
-        else:
-            print(f"\n处理章节 {i}/{len(html_items)}")
-            new_content = translate_content(
-                item.get_content().decode('utf-8'),
-                chapter_name,
-                progress,
-                book_name,
-                settings
-            )
+        debug_log("正在复制其他资源...")
+        # 复制其他资源
+        for item in book.get_items():
+            if not isinstance(item, epub.EpubHtml):
+                new_book.add_item(item)
         
-        new_chapter = epub.EpubHtml(
-            title=item.get_name(),
-            file_name=item.get_name(),
-            content=new_content.encode('utf-8')
+        new_book.toc = new_chapters
+        new_book.spine = ['nav'] + new_chapters
+        
+        nav = epub.EpubNav()
+        new_book.add_item(nav)
+        
+        nav_css = epub.EpubItem(
+            uid="style_nav",
+            file_name="style/nav.css",
+            media_type="text/css",
+            content=b'nav { display: block; }'
         )
-        new_chapters.append(new_chapter)
-        new_book.add_item(new_chapter)
-    
-    # 复制其他资源
-    for item in book.get_items():
-        if not isinstance(item, epub.EpubHtml):
-            new_book.add_item(item)
-    
-    new_book.toc = new_chapters
-    new_book.spine = ['nav'] + new_chapters
-    
-    nav = epub.EpubNav()
-    new_book.add_item(nav)
-    
-    nav_css = epub.EpubItem(
-        uid="style_nav",
-        file_name="style/nav.css",
-        media_type="text/css",
-        content=b'nav { display: block; }'
-    )
-    new_book.add_item(nav_css)
-    
-    # 标记整本书翻译完成
-    progress['completed'] = True
-    save_translation_progress(progress, book_name)
-    
-    print("\n正在保存翻译后的电子书...")
-    epub.write_epub(output_path, new_book)
-    print(f"翻译完成! 新文件保存在: {output_path}")
+        new_book.add_item(nav_css)
+        
+        debug_log("正在保存翻译后的电子书...")
+        print(json.dumps({
+            'status': 'saving',
+            'message': "正在保存翻译后的电子书..."
+        }))
+        sys.stdout.flush()
+        
+        epub.write_epub(output_path, new_book)
+        
+        debug_log(f"翻译完成! 新文件保存在: {output_path}")
+        print(json.dumps({
+            'status': 'completed',
+            'message': f"翻译完成! 新文件保存在: {output_path}"
+        }))
+        sys.stdout.flush()
+        
+    except Exception as e:
+        debug_log(f"翻译过程出错: {str(e)}")
+        print(json.dumps({
+            'status': 'error',
+            'message': str(e)
+        }), file=sys.stderr)
+        sys.stderr.flush()
+        raise
+
+def get_api_key(api):
+    """从环境变量获取API密钥"""
+    api_key = os.environ.get('TRANSLATOR_API_KEY')
+    if not api_key:
+        raise ValueError("未设置TRANSLATOR_API_KEY环境变量")
+    return api_key
+
+def get_target_language():
+    """从环境变量获取目标语言"""
+    return os.environ.get('TRANSLATOR_TARGET_LANG', 'zh')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='ePub双语翻译工具')
@@ -362,14 +368,36 @@ if __name__ == "__main__":
     parser.add_argument('--keep-original', action='store_true', help='保留英文原文')
     parser.add_argument('--no-keep-original', action='store_false', dest='keep_original', help='不保留英文原文')
     parser.set_defaults(keep_original=True)
-    
+
     args = parser.parse_args()
     
-    settings = {
-        'api': args.api,
-        'style': args.style,
-        'domain': args.domain,
-        'keepOriginal': args.keep_original
-    }
-    
-    translate_epub(args.input_file, args.output_file, settings) 
+    try:
+        # 检查环境变量
+        api_key = os.environ.get('TRANSLATOR_API_KEY')
+        if not api_key:
+            raise ValueError("未设置TRANSLATOR_API_KEY环境变量")
+        
+        settings = {
+            'api': args.api,
+            'style': args.style,
+            'domain': args.domain,
+            'keepOriginal': args.keep_original
+        }
+        
+        # 开始翻译
+        print(json.dumps({
+            'status': 'starting',
+            'message': '开始翻译...',
+            'api': args.api,
+            'style': args.style,
+            'domain': args.domain
+        }))
+        
+        translate_epub(args.input_file, args.output_file, settings)
+        
+    except Exception as e:
+        print(json.dumps({
+            'status': 'error',
+            'message': str(e)
+        }), file=sys.stderr)
+        sys.exit(1) 

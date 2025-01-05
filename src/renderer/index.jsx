@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Button } from './components/ui/button';
 import { Progress } from './components/ui/progress';
-import { Upload, Play, Pause, FolderOpen } from 'lucide-react';
+import { Upload, Play, Pause, FolderOpen, SettingsIcon } from 'lucide-react';
 import { SettingsDialog } from './components/settings-dialog';
+import { Dialog } from './components/ui/dialog';
 
 // 导入样式
 import './styles.css';
@@ -13,18 +14,26 @@ const defaultSettings = {
   api: 'deepseek',
   style: 'balanced',
   domain: 'general',
+  targetLanguage: 'zh',
   keepOriginal: true,
   apiKeys: {},
 };
 
 const App = () => {
-  const [inputFile, setInputFile] = useState(null);
+  const [file, setFile] = useState(null);
   const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState('idle');
+  const [currentChapter, setCurrentChapter] = useState('0/0');
+  const [chapterProgress, setChapterProgress] = useState(0);
+  const [status, setStatus] = useState('ready');
   const [error, setError] = useState(null);
   const [settings, setSettings] = useState(() => {
-    const savedSettings = localStorage.getItem('translationSettings');
-    return savedSettings ? JSON.parse(savedSettings) : defaultSettings;
+    try {
+      const savedSettings = localStorage.getItem('translationSettings');
+      return savedSettings ? JSON.parse(savedSettings) : defaultSettings;
+    } catch (err) {
+      console.error('Failed to parse settings:', err);
+      return defaultSettings;
+    }
   });
   const [translationStats, setTranslationStats] = useState({
     currentChapter: 0,
@@ -34,6 +43,44 @@ const App = () => {
     outputPath: '',
   });
 
+  const handleStartTranslation = async () => {
+    try {
+      console.log('开始翻译...', { file, settings });
+      
+      if (!file) {
+        throw new Error('请先选择一个ePub文件');
+      }
+      
+      // 检查设置是否完整
+      if (!settings || !settings.api || !settings.apiKeys[settings.api]) {
+        throw new Error('请先在设置中配置API和API Key');
+      }
+
+      console.log('发送翻译请求...');
+      setStatus('translating');
+      setError(null);
+      setProgress(0);
+      
+      const result = await window.electron.ipcRenderer.invoke('start-translation', {
+        filePath: file,
+        settings: settings
+      });
+      
+      console.log('收到翻译结果:', result);
+      
+      if (result.success) {
+        setStatus('success');
+        setProgress(100);
+      } else {
+        throw new Error(result.error || '翻译失败');
+      }
+    } catch (err) {
+      console.error('翻译错误:', err);
+      setStatus('error');
+      setError(err.message);
+    }
+  };
+
   // 保存设置到本地存储
   useEffect(() => {
     localStorage.setItem('translationSettings', JSON.stringify(settings));
@@ -42,14 +89,30 @@ const App = () => {
   // 监听翻译进度更新
   useEffect(() => {
     const handleProgress = (event, data) => {
-      setTranslationStats(prev => ({
-        ...prev,
-        ...data
-      }));
-      // 计算总体进度
-      const totalProgress = ((data.currentChapter - 1) / data.totalChapters * 100) + 
-                          (data.chapterProgress / data.totalChapters);
-      setProgress(totalProgress);
+      console.log('收到进度更新:', data);
+      
+      if (data.status === 'translating') {
+        // 更新翻译统计信息
+        setTranslationStats(prev => ({
+          ...prev,
+          currentChapter: data.currentChapter,
+          totalChapters: data.totalChapters,
+          chapterProgress: data.chapterProgress
+        }));
+
+        // 计算总体进度
+        if (data.totalChapters > 0) {
+          const totalProgress = ((data.currentChapter - 1) / data.totalChapters * 100) + 
+                              (data.chapterProgress / data.totalChapters);
+          setProgress(totalProgress);
+        }
+      } else if (data.status === 'error') {
+        setError(data.message);
+        setStatus('error');
+      } else if (data.status === 'completed') {
+        setStatus('success');
+        setProgress(100);
+      }
     };
 
     window.electron.ipcRenderer.on('translation-progress', handleProgress);
@@ -59,40 +122,25 @@ const App = () => {
   }, []);
 
   const handleFileSelect = async () => {
-    const filePath = await window.electron.ipcRenderer.invoke('select-file');
-    if (filePath) {
-      setInputFile(filePath);
-      setStatus('idle');
-      setError(null);
-      setTranslationStats(prev => ({
-        ...prev,
-        outputPath: filePath.replace('.epub', '_bilingual.epub')
-      }));
-    }
-  };
-
-  const handleTranslate = async () => {
-    if (!inputFile) return;
-
-    setStatus('translating');
-    setProgress(0);
-
     try {
-      const result = await window.electron.ipcRenderer.invoke('translate-epub', {
-        inputPath: inputFile,
-        outputPath: translationStats.outputPath,
-        settings
-      });
-
-      if (result.success) {
-        setStatus('success');
-        setProgress(100);
-      } else {
-        throw new Error(result.error);
+      const filePath = await window.electron.ipcRenderer.invoke('select-file');
+      if (filePath) {
+        setFile(filePath);
+        setStatus('idle');
+        setError(null);
+        setTranslationStats(prev => ({
+          ...prev,
+          currentChapter: 0,
+          totalChapters: 0,
+          chapterProgress: 0,
+          estimatedTimeRemaining: null,
+          outputPath: filePath.replace('.epub', '_bilingual.epub')
+        }));
       }
     } catch (err) {
+      console.error('Failed to select file:', err);
+      setError('选择文件失败');
       setStatus('error');
-      setError(err.message);
     }
   };
 
@@ -114,6 +162,7 @@ const App = () => {
 
   const handleSettingsChange = (newSettings) => {
     setSettings(newSettings);
+    localStorage.setItem('translationSettings', JSON.stringify(newSettings));
   };
 
   // 获取文件名的辅助函数
@@ -146,7 +195,17 @@ const App = () => {
               </p>
             </div>
           </div>
-          <SettingsDialog settings={settings} onSettingsChange={handleSettingsChange} />
+          <Dialog.Root>
+            <Dialog.Trigger asChild>
+              <Button variant="ghost" size="icon" className="button-linear">
+                <SettingsIcon className="w-4 h-4" />
+              </Button>
+            </Dialog.Trigger>
+            <SettingsDialog 
+              settings={settings}
+              onSettingsChange={handleSettingsChange}
+            />
+          </Dialog.Root>
         </div>
 
         {/* 主要内容区域 */}
@@ -160,7 +219,7 @@ const App = () => {
                   <label className="text-sm font-medium">Select ePub file</label>
                 </div>
                 <p className="text-muted-foreground text-sm truncate mt-2 ml-4">
-                  {inputFile ? getFileName(inputFile) : 'No file selected'}
+                  {file ? getFileName(file) : 'No file selected'}
                 </p>
               </div>
               <Button
@@ -174,7 +233,7 @@ const App = () => {
             </div>
           </div>
 
-          {inputFile && (
+          {file && (
             <div className="card-linear space-y-6">
               {/* 进度显示 */}
               <div>
@@ -258,7 +317,7 @@ const App = () => {
                     </Button>
                   )}
                   <Button
-                    onClick={handleTranslate}
+                    onClick={handleStartTranslation}
                     disabled={status === 'translating'}
                     className="button-linear button-primary h-9"
                   >
