@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 4%;
+  --foreground: 0 0% 98%;
+  
+  --card: 0 0% 6%;
+  --card-foreground: 0 0% 98%;
+  
+  --popover: 0 0% 9%;
+  --popover-foreground: 0 0% 98%;
+  
+  --primary: 252 59% 48%;
+  --primary-foreground: 0 0% 98%;
+  
+  --secondary: 0 0% 9%;
+  --secondary-foreground: 0 0% 98%;
+  
+  --muted: 0 0% 9%;
+  --muted-foreground: 0 0% 45%;
+  
+  --accent: 0 0% 9%;
+  --accent-foreground: 0 0% 98%;
+  
+  --destructive: 0 62% 35%;
+  --destructive-foreground: 0 0% 98%;
+
+  --success: 142 72% 29%;
+  --success-foreground: 0 0% 98%;
+  
+  --border: 0 0% 12%;
+  --input: 0 0% 12%;
+  --ring: 252 59% 48%;
+  
+  --radius: 0.75rem;
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+}
+
+/* Linear 风格的进度条 */
+.progress-bar {
+  @apply h-1 rounded-full bg-secondary overflow-hidden;
+}
+
+.progress-bar-value {
+  @apply h-full bg-primary transition-all duration-300 ease-in-out;
+}
+
+/* Linear 风格的按钮 */
+.button-linear {
+  @apply rounded-lg font-medium transition-all duration-200
+         hover:opacity-90 active:opacity-80 disabled:opacity-40
+         focus:outline-none focus:ring-1 focus:ring-primary/50;
+}
+
+.button-primary {
+  @apply bg-primary text-primary-foreground shadow-sm shadow-primary/20;
+}
+
+.button-secondary {
+  @apply bg-secondary text-secondary-foreground;
+}
+
+/* Linear 风格的输入框 */
+.input-linear {
+  @apply bg-secondary border-border rounded-lg px-4 py-2
+         focus:outline-none focus:ring-1 focus:ring-primary/50
+         placeholder:text-muted-foreground text-sm;
+}
+
+/* Linear 风格的卡片 */
+.card-linear {
+  @apply bg-card border border-border rounded-lg p-6
+         shadow-sm shadow-black/5;
+}
+
+/* 状态指示器 */
+.status-indicator {
+  @apply flex items-center gap-2;
+}
+
+.status-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+.status-dot-success {
+  @apply bg-success;
+}
+
+.status-dot-error {
+  @apply bg-destructive;
+}
+
+.status-dot-translating {
+  @apply bg-primary animate-pulse;
+}
+
+/* 动画效果 */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Linear 风格的滚动条 */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-secondary/50 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted rounded-full hover:bg-muted-foreground/50;
+} 
