@@ -3,7 +3,7 @@
 <div align="center">
   <img src="public/icon.png" alt="ePub Translator" width="128" height="128">
   <h1>ePub Translator</h1>
-  <p>优雅的ePub电子书双语翻译工具</p>
+  <p>An elegant bilingual translation tool for ePub books</p>
 </div>
 
 <p align="center">
@@ -14,91 +14,101 @@
 </p>
 
 <div align="center">
+  <a href="README.md">English</a> | <a href="README_CN.md">简体中文</a>
+</div>
+
+<div align="center">
   <img src="screenshots/app.png" alt="Screenshot" width="800">
 </div>
 
-## ✨ 特性
+## Background
 
-- 🎯 多种翻译API支持
-  - DeepSeek API（推荐）
+With the rise of Chinese AI companies like DeepSeek and their advanced Large Language Models (LLMs), high-quality translation has become more accessible and affordable than ever before. DeepSeek's LLMs demonstrate exceptional performance in understanding context and maintaining consistency in long-form content translation, making them particularly suitable for translating books and documents.
+
+This project leverages these technological advancements to create an elegant, user-friendly tool that helps readers access literature across language barriers. By supporting multiple translation APIs and offering flexible configuration options, we aim to provide a superior bilingual reading experience while keeping the costs minimal.
+
+## ✨ Features
+
+- 🎯 Multiple Translation API Support
+  - DeepSeek API (Recommended)
   - OpenAI API
   - Google Translate API
-- 🎨 优雅的Linear风格界面
-- 📚 完美保持原书的格式和样式
-- 🔄 实时翻译进度显示
-- ⚡ 支持暂停和继续翻译
-- 🛠️ 丰富的翻译配置选项
-  - 翻译风格（直译/意译/平衡）
-  - 专业领域（通用/技术/文学/商业/学术）
-  - 双语对照模式
+- 🎨 Elegant Linear-style Interface
+- 📚 Perfect Preservation of Original Formatting
+- 🔄 Real-time Translation Progress
+- ⚡ Pause & Resume Support
+- 🛠️ Rich Translation Options
+  - Translation Styles (Literal/Free/Balanced)
+  - Domain Expertise (General/Technical/Literary/Business/Academic)
+  - Bilingual Display Mode
 
-## 🚀 快速开始
+## 🚀 Getting Started
 
-### 系统要求
+### Prerequisites
 
 - macOS 10.15+
 - Node.js 16+
 - Python 3.9+
 - npm 7+
 
-### 安装
+### Installation
 
-1. 克隆仓库：
+1. Clone the repository:
 ```bash
 git clone https://github.com/yourusername/epub-translator.git
 cd epub-translator
 ```
 
-2. 安装依赖：
+2. Install dependencies:
 ```bash
-# 安装Node.js依赖
+# Install Node.js dependencies
 npm install
 
-# 安装Python依赖
+# Install Python dependencies
 pip3 install -r requirements.txt
 ```
 
-### 使用方法
+### Usage
 
-1. 启动应用：
+1. Start the application:
 ```bash
 npm start
 ```
 
-2. 在设置中配置翻译API和密钥：
-   - 选择翻译API（DeepSeek/OpenAI/Google）
-   - 配置对应的API密钥
-   - 选择翻译风格和专业领域
+2. Configure translation settings:
+   - Choose translation API (DeepSeek/OpenAI/Google)
+   - Set up API key
+   - Select translation style and domain
 
-3. 选择要翻译的ePub文件
-4. 点击"Start Translation"开始翻译
-5. 翻译完成后，可以在原文件所在目录找到生成的双语版本
+3. Select an ePub file
+4. Click "Start Translation"
+5. Find the bilingual version in the same directory as the original file
 
-## 📦 技术栈
+## 📦 Tech Stack
 
-- 前端
+- Frontend
   - React 18
   - Vite
   - Tailwind CSS
   - Linear UI Design
-- 后端
+- Backend
   - Electron
   - Python
   - ebooklib
 
-## 🤝 贡献
+## 🤝 Contributing
 
-1. Fork 本仓库
-2. 创建你的特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交你的改动 (`git commit -m 'feat: Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 打开一个 Pull Request
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'feat: Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📝 许可证
+## 📝 License
 
-本项目基于 MIT 许可证开源 - 查看 [LICENSE](LICENSE) 文件了解更多细节
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
-## 👨‍💻 作者
+## 👨‍💻 Author
 
 <table>
   <tr>
@@ -114,12 +124,12 @@ npm start
 - Website: [bravohenry.com](https://bravohenry.com)
 - Email: [bravohenry@msn.com](mailto:bravohenry@msn.com)
 
-## 🙏 致谢
+## 🙏 Acknowledgments
 
-感谢以下开源项目：
+Special thanks to:
 
+- [DeepSeek](https://deepseek.com) for their exceptional LLMs
 - [Electron](https://www.electronjs.org/)
 - [React](https://reactjs.org/)
 - [Tailwind CSS](https://tailwindcss.com/)
-- [ebooklib](https://github.com/aerkalov/ebooklib)
-- [DeepSeek](https://deepseek.com) 
+- [ebooklib](https://github.com/aerkalov/ebooklib) 
