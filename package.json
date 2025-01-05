@@ -1,11 +1,13 @@
 {
   "name": "epub-translator",
   "version": "1.0.0",
-  "description": "ePub双语翻译工具",
+  "description": "An elegant ePub bilingual translator with multiple API support",
   "author": {
-    "name": "Henry",
-    "email": "henry@example.com"
+    "name": "Henry Huang",
+    "email": "bravohenry@msn.com",
+    "url": "https://bravohenry.com"
   },
+  "license": "MIT",
   "main": "src/main/main.js",
   "scripts": {
     "start": "concurrently \"npm run start:vite\" \"npm run start:electron\"",
