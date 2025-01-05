@@ -110,9 +110,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Author
 
-<table>
+<table align="left">
   <tr>
-    <td align="center">
+    <td>
       <a href="https://bravohenry.com">
         <img src="https://github.com/yourusername.png" width="100px;" alt="Henry Huang"/><br />
         <sub><b>Henry Huang</b></sub>
@@ -120,6 +120,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
     </td>
   </tr>
 </table>
+
+<br clear="left"/>
+<br/>
 
 - Website: [bravohenry.com](https://bravohenry.com)
 - Email: [bravohenry@msn.com](mailto:bravohenry@msn.com)

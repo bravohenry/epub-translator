@@ -116,9 +116,9 @@ npm start
 
 ## 👨‍💻 作者
 
-<table>
+<table align="left">
   <tr>
-    <td align="center">
+    <td>
       <a href="https://bravohenry.com">
         <img src="https://github.com/yourusername.png" width="100px;" alt="Henry Huang"/><br />
         <sub><b>Henry Huang</b></sub>
@@ -126,6 +126,9 @@ npm start
     </td>
   </tr>
 </table>
+
+<br clear="left"/>
+<br/>
 
 - 网站：[bravohenry.com](https://bravohenry.com)
 - 邮箱：[bravohenry@msn.com](mailto:bravohenry@msn.com)
